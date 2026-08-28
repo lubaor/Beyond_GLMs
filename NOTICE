@@ -1,0 +1,11 @@
+Beyond GLMs: a reproducible benchmark of ML and causal methods for motor pricing
+Copyright 2026 Earnix Ltd.
+
+This product includes software developed at Earnix Ltd.
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+The Apache-2.0 grant above covers the code in this repository only. No
+third-party dataset is redistributed here; fetch_data.py downloads each one
+from its provider at run time, and each remains under its own licence. Four of
+the five are GPL (>= 2). See DATA_LICENCES.md.

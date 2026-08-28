@@ -1,0 +1,8 @@
+# Causal-layer environment (benchmark steps 8+).
+# NOTE: steps 2-7 were produced under scikit-learn==1.9.0; installing
+# econml pinned scikit-learn down to 1.6.1 for the causal steps. This
+# version split is intentional and documented here.
+scikit-learn==1.6.1
+econml==0.16.0
+numpy==2.4.6
+pandas==3.0.3

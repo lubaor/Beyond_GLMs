@@ -1,0 +1,84 @@
+[config] SMOKE=False  n_iter=40  n_jobs=8  outer=5  inner=3
+
+####################################################################################
+#  PORTFOLIO: freMTPL2freq (French motor)   (file=01_freMTPL2_freq.csv)
+#  rows dropped (Exposure<=0)=0
+#  categorical_features (by name): ['VehBrand', 'VehPower', 'VehGas', 'Region', 'Area']
+#  numeric features:               ['VehAge', 'DrivAge', 'BonusMalus', 'Density']
+####################################################################################
+
+  1) 5-FOLD SUMMARY  (mean +/- std, ddof=1)   GLM = untuned, GBM = tuned
+  ----------------------------------------------------------------------------
+  Model       Poisson deviance       Normalised Gini  Worst-decile cal.err
+  ----------------------------------------------------------------------------
+  GLM        0.593092 +/-0.003564       0.2943 +/-0.0113       0.1182 +/-0.0630
+  GBM        0.571598 +/-0.004386       0.3525 +/-0.0100       0.0977 +/-0.0403
+  ----------------------------------------------------------------------------
+
+  2) Per-fold TUNED-GBM-minus-GLM normalised-Gini gap:
+       +0.0572, +0.0593, +0.0572, +0.0614, +0.0554
+       folds where tuned-GBM worst-decile cal.err > GLM's: 1/5
+
+  3) Tuned GBM hyperparameters chosen per outer fold:
+     fold   learning_rate  max_leaf_nodes  min_samples_leaf l2_regularization
+        1          0.1043              50               104             6.078
+        2          0.1043              50               104             6.078
+        3          0.1043              50               104             6.078
+        4          0.1043              50               104             6.078
+        5          0.1043              50               104             6.078
+
+####################################################################################
+#  PORTFOLIO: Australian (ausprivauto)   (file=04_ausprivauto_dejong.csv)
+#  rows dropped (Exposure<=0)=0
+#  categorical_features (by name): ['VehAge', 'VehBody', 'Gender', 'DrivAge']
+#  numeric features:               ['VehValue']
+####################################################################################
+
+  1) 5-FOLD SUMMARY  (mean +/- std, ddof=1)   GLM = untuned, GBM = tuned
+  ----------------------------------------------------------------------------
+  Model       Poisson deviance       Normalised Gini  Worst-decile cal.err
+  ----------------------------------------------------------------------------
+  GLM        0.798375 +/-0.022434       0.0995 +/-0.0182       0.1874 +/-0.0536
+  GBM        0.799749 +/-0.022083       0.0858 +/-0.0169       0.2416 +/-0.0679
+  ----------------------------------------------------------------------------
+
+  2) Per-fold TUNED-GBM-minus-GLM normalised-Gini gap:
+       -0.0058, -0.0206, -0.0140, -0.0088, -0.0196
+       folds where tuned-GBM worst-decile cal.err > GLM's: 3/5
+
+  3) Tuned GBM hyperparameters chosen per outer fold:
+     fold   learning_rate  max_leaf_nodes  min_samples_leaf l2_regularization
+        1          0.0449              31              1743             2.828
+        2          0.0159              59              1753             0.871
+        3          0.1139               8               418             1.709
+        4          0.1139               8               418             1.709
+        5          0.0154              61              1945             5.684
+
+####################################################################################
+#  PORTFOLIO: Swedish Wasa motorcycle   (file=03_wasa_motorcycle.csv)
+#  rows dropped (Exposure<=0)=2074
+#  categorical_features (by name): ['Gender', 'Area', 'RiskClass', 'BonusClass']
+#  numeric features:               ['OwnerAge', 'VehAge']
+####################################################################################
+
+  1) 5-FOLD SUMMARY  (mean +/- std, ddof=1)   GLM = untuned, GBM = tuned
+  ----------------------------------------------------------------------------
+  Model       Poisson deviance       Normalised Gini  Worst-decile cal.err
+  ----------------------------------------------------------------------------
+  GLM        0.131172 +/-0.011259       0.5528 +/-0.0636       1.4049 +/-1.4668
+  GBM        0.131341 +/-0.011255       0.5564 +/-0.0554       1.0554 +/-0.4677
+  ----------------------------------------------------------------------------
+  (note: 2 decile(s) had zero observed claims, skipped)
+
+  2) Per-fold TUNED-GBM-minus-GLM normalised-Gini gap:
+       +0.0024, +0.0069, -0.0106, +0.0289, -0.0093
+       folds where tuned-GBM worst-decile cal.err > GLM's: 2/5
+
+  3) Tuned GBM hyperparameters chosen per outer fold:
+     fold   learning_rate  max_leaf_nodes  min_samples_leaf l2_regularization
+        1          0.1139               8               418             1.709
+        2          0.1139               8               418             1.709
+        3          0.0883              42              1919             6.778
+        4          0.1139               8               418             1.709
+        5          0.0883              42              1919             6.778
+
