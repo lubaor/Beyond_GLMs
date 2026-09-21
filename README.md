@@ -101,6 +101,7 @@ steps answer it on freMTPL2 by tuning the incumbent too, one lever at a time.
 | `07d_tuned_glm_interactions.py` | Forward search over all 36 pairwise interactions |
 | `07e_tuned_glm_final.py` | Everything combined: the tuned GLM behind the headline |
 | `07f_tuned_glm_crossportfolio.py` | The same treatment on the Australian and Swedish books |
+| `07g_swedish_exposure_cap.py` | What the frozen exposure cap cost the Swedish book |
 
 Numerics are **step encoded** as `1(bin > k)`, so each coefficient is the jump
 between adjacent bins. L1 drives a jump to exactly zero and merges those bins,
@@ -138,6 +139,7 @@ results/                  committed outputs
   07_tuned_gbm_summary.txt  the tuned GBM 5-fold run
   07e_tuned_glm_final.csv   the tuned GLM 5-fold run, freMTPL2
   07f_tuned_glm_crossportfolio.csv  the same, Australian and Swedish
+  07g_swedish_exposure_cap.csv      capped vs uncapped, Swedish book
 ```
 
 Downloaded data lands in the repository root and is gitignored. Fitted models
@@ -218,6 +220,36 @@ sophistication is a boosted model or a carefully tuned GLM.
 For the Australian book the honest figure to quote is the **fixed** GLM's
 0.0995, because it is the better model and the tuned variant overfit its own
 selection. "We tried, and it did not help" is the result.
+
+### What the frozen harness cost the Swedish book
+
+The harness caps `Exposure` at 1 for every portfolio. On freMTPL2 that is the
+correct fix for a documented quirk: 0.2% of rows, 0.0% of exposure. The
+Swedish data is aggregated over 1994 to 1998, so a row is a risk cell that can
+hold up to 31 bike-years, and the same rule hits 23% of rows and discards
+**32% of all policy-years**. Claim counts are untouched, so the implied
+frequency on those rows inflates 2.4x while their weight in the fit collapses.
+
+`07g` runs the book both ways. Deviance is not comparable across the two,
+since capping changes the target and the weights, so only Gini and the decile
+ratio are reported.
+
+| | Gini capped | Gini uncapped | worst decile capped | uncapped |
+|---|---|---|---|---|
+| GLM, fixed | 0.5528 ±0.0636 | 0.5679 ±0.0692 | 1.4049 ±1.4668 | 1.5473 ±0.8046 |
+| GBM, untuned | 0.5336 ±0.0392 | 0.5455 ±0.0478 | 1.8734 ±1.7575 | 1.6371 ±0.5623 |
+| GBM, tuned | 0.5526 ±0.0611 | 0.5535 ±0.0644 | 1.3453 ±1.2494 | 1.3526 ±1.3343 |
+
+**The wash survives.** Uncapped the GLM is nominally ahead by 0.014 instead of
+level, which is 0.2 of a fold SD. An ordering that flips under a preprocessing
+change is not an ordering.
+
+**The cap inflated the diagnostic's variance, not its level.** Miscalibration
+stays at 1.35 to 1.65 either way, so the worst decile is still out by 135 to
+165% with every policy-year restored. What changes is the spread: removing the
+cap cuts the fold-to-fold SD by 45% for the GLM and 68% for the untuned GBM.
+The broken diagnostic is therefore a sparsity problem, and the cap was making
+it noisier on top rather than causing it.
 
 ## Licence
 
