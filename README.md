@@ -88,6 +88,25 @@ output from the working directory, so there is nothing to configure.
 | `06_crossportfolio.py` | Same harness on the Australian and Swedish books |
 | `07_tuned_gbm_frequency.py` | Nested CV with tuning, all three portfolios |
 
+**Is it a fair fight? Tuning the GLM as hard as the challenger**
+
+Steps `02` to `07` tune the boosted model and leave the GLM at a fixed
+specification, which is the obvious objection to the headline. These four
+steps answer it on freMTPL2 by tuning the incumbent too, one lever at a time.
+
+| Step | What it does |
+|---|---|
+| `07b_tuned_glm_binning.py` | 32 quantile bins per numeric, step encoded, L2 on the jumps |
+| `07c_tuned_glm_enet.py` | Adds elastic net and a monotone `BonusMalus` constraint |
+| `07d_tuned_glm_interactions.py` | Forward search over all 36 pairwise interactions |
+| `07e_tuned_glm_final.py` | Everything combined: the tuned GLM behind the headline |
+
+Numerics are **step encoded** as `1(bin > k)`, so each coefficient is the jump
+between adjacent bins. L1 drives a jump to exactly zero and merges those bins,
+so the surviving jumps are the binning the data chose rather than one an
+analyst picked. Monotonicity in `BonusMalus` is then the box constraint
+"every jump >= 0", enforced exactly rather than checked after the fact.
+
 **Demand: can a price effect be identified at all?**
 
 | Step | What it does |
@@ -110,11 +129,13 @@ fetch_data.py             downloads all five datasets
 requirements.txt          causal-layer environment
 
 01_ .. 07_*.py            frequency benchmark, in order
+07b .. 07e_*.py           tuning the GLM, so the comparison is fair
 08_ .. 09_*.py            causal layer, in order
 
 results/                  committed outputs
   04_calibration_*.csv      single-split decile calibration tables
-  07_tuned_gbm_summary.txt  the tuned 5-fold run behind the headline numbers
+  07_tuned_gbm_summary.txt  the tuned GBM 5-fold run
+  07e_tuned_glm_final.csv   the tuned GLM 5-fold run
 ```
 
 Downloaded data lands in the repository root and is gitignored. Fitted models
@@ -138,11 +159,44 @@ binaries. See its docstring for an R fallback if `pyreadr` will not build.
 
 ## Headline results
 
-From `results/07_tuned_gbm_summary.txt`, 5-fold, tuned GBM against an untuned GLM:
+**freMTPL2, tuned against tuned.** Five-fold, identical folds throughout. This
+is the comparison to quote: both sides had their hyperparameters and their
+structure searched.
+
+| Model | Normalised Gini | Poisson deviance | Worst-decile cal. err |
+|---|---|---|---|
+| GLM, fixed specification | 0.2943 ±0.0112 | 0.593092 | 0.1162 ±0.0588 |
+| **GLM, tuned** (`07e`) | **0.3127 ±0.0107** | **0.585702** | **0.1151 ±0.0115** |
+| **GBM, tuned** (`07`) | **0.3525 ±0.0098** | **0.571598** | **0.0977** |
+
+Tuning the GLM closes **a third of the ranking gap** and 36% of the deviance
+gap. The boosted model still wins by **+13%**, and it is still the better
+calibrated of the two. Both halves of that sentence matter: the gap is smaller
+than an untuned comparison suggests, and it does not go away.
+
+What the GLM's tuning bought, one lever at a time:
+
+| Variant | Gini | Worst-decile cal. err |
+|---|---|---|
+| Fixed specification | 0.2943 | 0.1162 ±0.0588 |
+| + fine bins, L2 (`07b`) | 0.3097 | 0.1172 ±0.0271 |
+| + elastic net, monotone (`07c`) | 0.3082 | 0.1454 ±0.0702 |
+| + interactions, L2 (`07d`) | 0.3157 | 0.1502 ±0.0630 |
+| all combined (`07e`) | 0.3127 | 0.1151 ±0.0115 |
+
+Interactions carry most of the gain, and the constraints pay for themselves in
+the tails: the combined model is the best calibrated GLM variant and by far the
+most stable across folds (SD 0.0115 against 0.06 to 0.07 for the unconstrained
+ones). Six crosses were selected in at least four of the five independent
+per-fold searches, led by `VehAge x VehBrand` and `VehAge x VehPower` in 5/5.
+That is structure a boosted model finds for free and a GLM has to be told.
+
+**Across portfolios** (untuned GLM baseline on all three, for comparability;
+only freMTPL2 has a tuned GLM):
 
 | Portfolio | GLM Gini | GBM Gini | Verdict |
 |---|---|---|---|
-| freMTPL2 | 0.2943 | 0.3525 | GBM wins, +20%, positive in all 5 folds |
+| freMTPL2 | 0.2943 | 0.3525 | GBM wins, positive in all 5 folds |
 | Australian | 0.0995 | 0.0858 | GLM keeps a small edge in every fold |
 | Swedish | 0.5528 | 0.5564 | Statistical wash, per-fold gaps change sign |
 

@@ -16,13 +16,44 @@ it, not with the sophistication of the model.
 
 | Your book | Diagnostic | Decision |
 |---|---|---|
-| **Rich signal**, normalised Gini around 0.25 or above | GBM beats GLM in every fold, gap well above fold-to-fold noise | **Tune a GBM and adopt it.** Expect a real ranking lift [freMTPL2: 0.29 to 0.35, +20%, positive in 5/5 folds at roughly 25x the paired gap SD] |
+| **Rich signal**, normalised Gini around 0.25 or above | GBM beats GLM in every fold, gap well above fold-to-fold noise | **Tune a GBM and adopt it.** Expect a real lift, but size it against a *tuned* GLM [freMTPL2, tuned against tuned: 0.3127 to 0.3525, **+13%**; against a fixed-specification GLM the same result reads +20%] |
 | **Low signal**, Gini around 0.15 or below | Tuned GBM converges towards the GLM and falls short | **Stay with the GLM.** You will not get a lift, and you pay in interpretability and governance for nothing [Australian: GLM 0.0995 vs GBM 0.0858, GLM ahead in 5/5 folds] |
 | **Sparse claims** | Diagnostic SD is the same order as the estimate itself; deciles with zero observed claims | **Default to the GLM** and report a non-finding. You cannot demonstrate a difference either way, and you should not defend a model you cannot validate [Swedish: 0.5528 vs 0.5564, per-fold gaps change sign; worst-decile error 1.40 +/- 1.47] |
 
 A lift is only real if it is **calibration-free**. Check that the challenger's
-worst-decile error does not deteriorate [freMTPL2: GBM 0.098 vs GLM 0.118, so
-the challenger was *better* calibrated].
+worst-decile error does not deteriorate [freMTPL2, tuned against tuned: GBM
+0.098 vs GLM 0.115, so the challenger was *better* calibrated as well as
+better at ranking].
+
+### Tune both sides, and say what each lever bought
+
+Comparing a searched challenger against a fixed incumbent is the most common
+way these results get inflated. On freMTPL2, tuning the GLM properly closes a
+third of the ranking gap:
+
+| GLM variant | Gini | Worst-decile cal. err |
+|---|---|---|
+| Fixed specification | 0.2943 | 0.1162 +/-0.0588 |
+| Fine bins, L2 on the jumps | 0.3097 | 0.1172 +/-0.0271 |
+| Elastic net, monotone BonusMalus | 0.3082 | 0.1454 +/-0.0702 |
+| Forward-selected interactions | 0.3157 | 0.1502 +/-0.0630 |
+| **All combined** | **0.3127** | **0.1151 +/-0.0115** |
+| *GBM, tuned* | *0.3525* | *0.0977* |
+
+Two things worth carrying away. **Interactions did most of the work**, which is
+the honest reason a boosted model wins here: it finds interaction structure for
+free, and a GLM has to be told. Six crosses were picked in at least four of
+five independent per-fold searches, led by `VehAge x VehBrand` and
+`VehAge x VehPower` in all five. **The constraints paid for themselves in the
+tails**: unconstrained interactions degraded worst-decile calibration, while
+the monotone elastic net version is the best calibrated GLM variant and by far
+the most stable across folds.
+
+Technique worth stealing: step encode fine bins as `1(bin > k)`, so each
+coefficient is the jump between adjacent bins. L1 then merges bins by zeroing
+jumps, and monotonicity becomes the exact constraint "every jump >= 0". On
+freMTPL2 the penalty reduced 31 candidate jumps to 6 for `BonusMalus`, 13 for
+`VehAge`, 17 for `Density` and 18 for `DrivAge`.
 
 ---
 
@@ -74,7 +105,9 @@ These are the substance of an SS1/23 validation story.
 1. **Cross-validate.** Never a single split. [A 25% calibration miss on one
    90/10 split, against the GLM's 11%, vanished under 5-fold: 0.082 untuned and
    0.098 tuned, against 0.118. A clean headline that was a false positive.]
-2. **Tune the challenger.** Never tuned against untuned, in either direction.
+2. **Tune the challenger, and tune the incumbent.** Never searched against
+   fixed, in either direction. [Doing this honestly moved our own headline from
+   +20% to +13%. The finding survived; the number did not.]
 3. **Freeze the harness.** One metric, one split, one weighting, all decided
    before you look at results.
 4. **Diagnose the tails.** The aggregate loss ratio hides what a regulator cares
