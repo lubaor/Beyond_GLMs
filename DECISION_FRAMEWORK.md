@@ -100,7 +100,11 @@ fraction, the robustness value and the named confounder on the same page.
 
 ## 3. Five guardrails
 
-These are the substance of an SS1/23 validation story.
+These are how you satisfy what TAS 100 asks of the modelling and the
+communication. SS1/23 puts independent validation more sharply than any
+actuarial standard does, but it binds banks, not insurers: worth borrowing,
+not a requirement you can claim. The reader is your pricing or model
+governance committee, and above it the board risk committee.
 
 1. **Cross-validate.** Never a single split. [A 25% calibration miss on one
    90/10 split, against the GLM's 11%, vanished under 5-fold: 0.082 untuned and
@@ -115,6 +119,10 @@ These are the substance of an SS1/23 validation story.
    too noisy to interpret.
 5. **Disclose the environment.** Pin versions and state the reason for any split
    between them.
+
+TAS 100 v2.0, *Principles for Technical Actuarial Work* (FRC, effective 1 July
+2023). SS1/23, *Model risk management principles for banks* (PRA, May 2023),
+Principle 4.
 
 ---
 
