@@ -35,7 +35,7 @@ python fetch_data.py
 python 01_load_and_profile.py
 ```
 
-Then run `02` through `07` in order for the frequency benchmark, and `08`
+Then run `02` through `07f` in order for the frequency benchmark, and `08`
 through `09` for the causal layer.
 
 `fetch_data.py` was last run end to end on 2026-08-28. All five datasets
@@ -100,6 +100,7 @@ steps answer it on freMTPL2 by tuning the incumbent too, one lever at a time.
 | `07c_tuned_glm_enet.py` | Adds elastic net and a monotone `BonusMalus` constraint |
 | `07d_tuned_glm_interactions.py` | Forward search over all 36 pairwise interactions |
 | `07e_tuned_glm_final.py` | Everything combined: the tuned GLM behind the headline |
+| `07f_tuned_glm_crossportfolio.py` | The same treatment on the Australian and Swedish books |
 
 Numerics are **step encoded** as `1(bin > k)`, so each coefficient is the jump
 between adjacent bins. L1 drives a jump to exactly zero and merges those bins,
@@ -129,13 +130,14 @@ fetch_data.py             downloads all five datasets
 requirements.txt          causal-layer environment
 
 01_ .. 07_*.py            frequency benchmark, in order
-07b .. 07e_*.py           tuning the GLM, so the comparison is fair
+07b .. 07f_*.py           tuning the GLM, so the comparison is fair
 08_ .. 09_*.py            causal layer, in order
 
 results/                  committed outputs
   04_calibration_*.csv      single-split decile calibration tables
   07_tuned_gbm_summary.txt  the tuned GBM 5-fold run
-  07e_tuned_glm_final.csv   the tuned GLM 5-fold run
+  07e_tuned_glm_final.csv   the tuned GLM 5-fold run, freMTPL2
+  07f_tuned_glm_crossportfolio.csv  the same, Australian and Swedish
 ```
 
 Downloaded data lands in the repository root and is gitignored. Fitted models
@@ -191,17 +193,31 @@ ones). Six crosses were selected in at least four of the five independent
 per-fold searches, led by `VehAge x VehBrand` and `VehAge x VehPower` in 5/5.
 That is structure a boosted model finds for free and a GLM has to be told.
 
-**Across portfolios** (untuned GLM baseline on all three, for comparability;
-only freMTPL2 has a tuned GLM):
+**Across portfolios**, every model tuned (`07f` does the Australian and Swedish
+GLMs, with ordered categoricals step encoded so the penalty can merge adjacent
+levels the way an actuary groups bonus classes by hand):
 
-| Portfolio | GLM Gini | GBM Gini | Verdict |
-|---|---|---|---|
-| freMTPL2 | 0.2943 | 0.3525 | GBM wins, positive in all 5 folds |
-| Australian | 0.0995 | 0.0858 | GLM keeps a small edge in every fold |
-| Swedish | 0.5528 | 0.5564 | Statistical wash, per-fold gaps change sign |
+| Portfolio | GLM fixed | GLM tuned | GBM tuned | Verdict |
+|---|---|---|---|---|
+| freMTPL2 | 0.2943 | **0.3127** | **0.3525** | GBM wins by +13% |
+| Australian | 0.0995 | 0.0930 | 0.0858 | GLM keeps the edge; tuning does not help it |
+| Swedish | 0.5528 | 0.5560 | 0.5564 | A wash, tuned or not: 0.0004 apart on a fold SD of 0.058 |
 
-The return scales with the estimable signal in the book, not with the model's
-sophistication.
+The tuning that bought +0.018 Gini on freMTPL2 buys **nothing** on the other
+two. On the Australian book it is if anything slightly negative, and the
+selection is visibly fitting noise: across five folds of the same data the
+inner split chose alphas spanning two orders of magnitude, `l1_ratio` across
+its whole range, and between 14 and 120 non-zero coefficients. On the Swedish
+book the elastic net chose pure ridge in four folds of five and merged nothing
+at all, because there was no grouping structure to find.
+
+That is the same finding from the other direction: the return to sophistication
+scales with the estimable signal in the book, and it does so whether the
+sophistication is a boosted model or a carefully tuned GLM.
+
+For the Australian book the honest figure to quote is the **fixed** GLM's
+0.0995, because it is the better model and the tuned variant overfit its own
+selection. "We tried, and it did not help" is the result.
 
 ## Licence
 
