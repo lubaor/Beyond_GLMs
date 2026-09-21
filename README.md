@@ -16,6 +16,17 @@ weighting and diagnostics. Only the columns change when a new book enters. Any
 difference is then attributable to the data or the model, never to the analyst
 moving the goalposts between runs.
 
+## The decision framework
+
+[DECISION_FRAMEWORK.md](DECISION_FRAMEWORK.md) is the one-page takeaway: which
+model class fits which use case, and when to stop and not build the model at
+all. Three sequenced tests for the risk model, two gates for the causal
+estimate, and the thresholds are derived from the runs in this repository
+rather than asserted.
+
+Read it first if you want the conclusions. Run the pipeline below if you want
+to check them.
+
 ## Quick start
 
 ```bash
