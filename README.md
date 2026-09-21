@@ -114,10 +114,25 @@ analyst picked. Monotonicity in `BonusMalus` is then the box constraint
 | Step | What it does |
 |---|---|
 | `08_dml_synthetic_validation.py` | DML against a planted ground truth |
-| `08b_dml_synthetic_sweep.py` | Confounding-strength sweep |
+| `08b_dml_synthetic_sweep.py` | Confounding-strength sweep, at constant treatment spread |
 | `09_dml_real_elasticity.py` | Renewal elasticity, fails gate 1 |
 
 Steps `08` onward need the second environment (see below).
+
+**A correction in `08b`.** The sweep builds the treatment as
+`T = RHO * z_prem_pure + noise` with the noise SD fixed, so raising RHO to
+increase the confounding also inflated `Var(T)`: the treatment SD went 0.26 to
+0.57 across the sweep, which pushed the clipped fraction of the Bernoulli
+probability from 5% to 20%. Clipping flattens the effect where it binds, so the
+true average marginal effect is `THETA_TRUE * P(not clipped)`, which drifted
+from 0.142 down to 0.120 while the script kept scoring against 0.15.
+
+That made DML look like it was failing under near-collinearity when the target
+had moved underneath it. The treatment spread is now held constant, and the
+run is scored against the realised estimand. DML covers it in all three
+regimes. What actually degrades with confounding is overlap, from 92% of
+treatment variance surviving the controls down to 19%, and the confidence
+interval roughly doubles in width to say so.
 
 ## Repository map
 

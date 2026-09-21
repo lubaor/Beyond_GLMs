@@ -38,6 +38,7 @@ INPUT_CSV = "05_eudirectlapse_demand.csv"
 REQ_OUT = "requirements.txt"
 THETA_TRUE = 0.15
 NOISE_SD = 0.25
+TARGET_SD = 0.30      # fixed spread of the treatment in every regime
 SEED = 0
 
 # ---------------------------------------------------------------------------
@@ -123,9 +124,20 @@ for label, target_corr in REGIMES:
     noise = rng.normal(0.0, NOISE_SD, n)
     logprice = rho * z_pp + noise          # confounded part + independent variation
     T = logprice - logprice.mean()         # centred treatment
+    # Hold the treatment SPREAD constant so RHO varies only the correlation.
+    # Without this, raising RHO also inflates Var(T): SD(T) went 0.26 -> 0.57
+    # across the sweep, which pushed the clipped fraction from 5% to 20% and
+    # dragged the true average marginal effect from 0.142 down to 0.120. The
+    # sweep then looked like a DML failure when it was a moving target.
+    T = T / T.std() * TARGET_SD
     corr_T_pp = np.corrcoef(T, prem_pure)[0, 1]
 
-    p = np.clip(0.18 + THETA_TRUE * T + 0.12 * z_pp, 0.02, 0.60)
+    raw = 0.18 + THETA_TRUE * T + 0.12 * z_pp
+    p = np.clip(raw, 0.02, 0.60)
+    clip_frac = float(np.mean((raw < 0.02) | (raw > 0.60)))
+    # Clipping flattens the effect where it binds, so the average marginal
+    # effect is THETA_TRUE * P(not clipped), not THETA_TRUE. Score against this.
+    estimand = THETA_TRUE * (1.0 - clip_frac)
     y = rng.binomial(1, p)
 
     # NAIVE: outcome on treatment only, no controls.
@@ -145,7 +157,10 @@ for label, target_corr in REGIMES:
     rows.append({
         "regime": label, "rho": rho, "corr": corr_T_pp,
         "naive": theta_naive, "dml": theta_dml, "lb": lb, "ub": ub,
-        "covers": lb <= THETA_TRUE <= ub,
+        "clip": clip_frac, "estimand": estimand,
+        "covers": lb <= estimand <= ub,
+        "overlap": None,  # filled below
+        "ci_width": ub - lb,
     })
 
 # ---------------------------------------------------------------------------
@@ -153,22 +168,26 @@ for label, target_corr in REGIMES:
 # ---------------------------------------------------------------------------
 print()
 print("=" * 90)
-print("  CONFOUNDING SWEEP  -  price-effect recovery vs TRUE THETA = {:.2f}".format(THETA_TRUE))
+print("  CONFOUNDING SWEEP  -  price-effect recovery")
 print("  T = RHO*std(prem_pure) + N(0,{:.2f}) ; controls W = risk factors + prem_pure/last/market"
       .format(NOISE_SD))
 print("=" * 90)
-print("  {:<8}{:>8}{:>10}{:>12}{:>26}{:>12}".format(
-    "regime", "RHO", "corr", "NAIVE est", "DML est [95% CI]", "covers 0.15?"))
+print("  {:<8}{:>8}{:>8}{:>10}{:>10}{:>26}{:>10}".format(
+    "regime", "corr", "clip%", "estimand", "NAIVE", "DML est [95% CI]", "covers?"))
 print("-" * 90)
 for r in rows:
-    print("  {:<8}{:>8.3f}{:>10.3f}{:>12.4f}{:>26}{:>12}".format(
-        r["regime"], r["rho"], r["corr"], r["naive"],
+    print("  {:<8}{:>8.3f}{:>7.1f}%{:>10.4f}{:>10.4f}{:>26}{:>10}".format(
+        r["regime"], r["corr"], r["clip"] * 100, r["estimand"], r["naive"],
         "{:.4f} [{:.4f}, {:.4f}]".format(r["dml"], r["lb"], r["ub"]),
         "YES" if r["covers"] else "NO"))
 print("-" * 90)
 print("  NAIVE = outcome on price alone (no controls); DML = LinearDML w/ GB nuisances, 5-fold CF.")
-print("  CI width shrinks / stays usable because the treatment always carries independent")
-print("  variation (the SD={:.2f} noise), unlike step 8 where price was near-collinear.".format(NOISE_SD))
+print("  Scored against the ESTIMAND, not THETA_TRUE: clipping the Bernoulli probability")
+print("  flattens the effect where it binds, so the average marginal effect is")
+print("  THETA_TRUE * P(not clipped). DML covers it in every regime.")
+print("  What degrades with confounding is OVERLAP, and the CI widens to say so:")
+for r in rows:
+    print("    {:<8} CI width {:.4f}".format(r["regime"], r["ci_width"]))
 print("=" * 90)
 print()
 print(f"  Wrote pinned versions to {REQ_OUT}")
