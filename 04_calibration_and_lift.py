@@ -10,13 +10,19 @@ Two diagnostics per model:
   2) Discrimination via the normalised (exposure-weighted, ordered) Gini.
 """
 
+import os
+
 import numpy as np
 import pandas as pd
 
 GLM_PRED = "02_glm_frequency_test_predictions.csv"
 GBM_PRED = "03_gbm_frequency_test_predictions.csv"
-CAL_GLM_OUT = "04_calibration_glm.csv"
-CAL_GBM_OUT = "04_calibration_gbm.csv"
+
+# Committed outputs live in results/ so the repository root stays code and docs.
+RESULTS_DIR = "results"
+os.makedirs(RESULTS_DIR, exist_ok=True)
+CAL_GLM_OUT = os.path.join(RESULTS_DIR, "04_calibration_glm.csv")
+CAL_GBM_OUT = os.path.join(RESULTS_DIR, "04_calibration_gbm.csv")
 
 # ----------------------------------------------------------------------------
 # 1. Load the two saved prediction sets and confirm they line up 1-for-1
